@@ -65,11 +65,11 @@ def generate_regenet_arch(initial_width, width_slope, quantilize, width_m, depth
 
 
 class RegNet(AnyNetXe):
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
-        super(RegNet, self).__init__(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+        super(RegNet, self).__init__(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
 
 
-def create_regnet(model_arch = "regnetx_002", stride = 1, num_classes = 1000,
+def create_regnet(model_arch = "regnetx_002", imagesize = (224, 224), stride = 1, num_classes = 1000,
                   sub_stage = ['C', 'C', 'C', 'C'], use_fpn = False):
     model_cfg = model_cfgs[model_arch]
     num_blocks, block_widths, group_widths, bottleneck_ratios = generate_regenet_arch(
@@ -81,15 +81,15 @@ def create_regnet(model_arch = "regnetx_002", stride = 1, num_classes = 1000,
         bottleneck_ratio = 1,
         group_width = model_cfg['group_w'],
     )
-    model = RegNet(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, model_cfg['se_ratio'], num_classes, sub_stage, use_fpn)
+    model = RegNet(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, model_cfg['se_ratio'], num_classes, sub_stage, use_fpn)
     return model
 
 
 if __name__ == '__main__':
-    model = create_regnet('regnety_040', 2, 1000, sub_stage = ['C', 'C', 'C', 'C'], use_fpn = True)
+    model = create_regnet('regnety_002', (32, 32), 2, 2, sub_stage = ['C', 'C', 'T', 'T'], use_fpn = False)
     # print(model)
-    img = torch.randn(1, 3, 224, 224)
-    assert model(img).shape == (1, 1000)
+    img = torch.randn(1, 3, 32, 32)
+    assert model(img).shape == (1, 2)
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Total parameters: {total_params}")
     print("RegNet test success!")
