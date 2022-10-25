@@ -11,7 +11,7 @@ class AnyNetX(nn.Module):
     Consists of a simple stem, followed by the network body that performs the
     bulk of the computation, and a final network head that predicts the classes.
     """
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
         super(AnyNetX, self).__init__()
         self.use_fpn = use_fpn
         prev_conv_width = 32
@@ -26,7 +26,10 @@ class AnyNetX(nn.Module):
             if stage_type == 'C':
                 stage = Stage(prev_conv_width, block_width, num_block, stride, bottleneck_ratio, group_width, se_ratio)
             else:
-                stage = TransformerStage(prev_conv_width, block_width, num_block, stride)
+                ih, iw = imagesize
+                ih = ih // (2**(index + 2))
+                iw = iw // (2**(index + 2))
+                stage = TransformerStage(prev_conv_width, block_width, num_block, (ih, iw), downsample = (stride == 2))
             self.body.add_module(f"Stage_{index + 1}", stage)
             prev_conv_width = block_width
         # Construct the FPN
@@ -53,8 +56,8 @@ class AnyNetXb(AnyNetX):
     """
     AnyNetXb is a variant of AnyNetX that uses the same bottleneck ratio for all.
     """
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
-        super(AnyNetXb, self).__init__(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+        super(AnyNetXb, self).__init__(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
         assert len(set(bottleneck_ratios)) == 1, "All bottleneck ratios must be equal"
 
 
@@ -62,8 +65,8 @@ class AnyNetXc(AnyNetXb):
     """
     AnyNetXc is a variant of AnyNetXb that uses the same group width for all.
     """
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
-        super(AnyNetXc, self).__init__(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+        super(AnyNetXc, self).__init__(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
         assert len(set(group_widths)) == 1, "All group widths must be equal"
 
 
@@ -71,8 +74,8 @@ class AnyNetXd(AnyNetXc):
     """
     AnyNetXd is a variant of AnyNetXc that block widths are monotonically increasing.
     """
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
-        super(AnyNetXd, self).__init__(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+        super(AnyNetXd, self).__init__(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
         assert all(prev <= behind for prev, behind in zip(block_widths[: -2], block_widths[1 :])), "Block widths must be monotonically increasing"
 
 
@@ -80,8 +83,8 @@ class AnyNetXe(AnyNetXd):
     """
     AnyNetXe is a variant of AnyNetXd that number of blocks is monotonically increasing.
     """
-    def __init__(self, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
-        super(AnyNetXe, self).__init__(num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
+    def __init__(self, imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn):
+        super(AnyNetXe, self).__init__(imagesize, num_blocks, block_widths, bottleneck_ratios, group_widths, stride, se_ratio, num_classes, sub_stage, use_fpn)
         assert all(prev <= behind for prev, behind in zip(num_blocks[: -2], num_blocks[1 :])), "Number of blocks must be monotonically increasing"
 
 
