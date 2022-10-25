@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformer import TransformerBlock
+from transformer import TransformerBlock, Transformer
 
 
 class Stem(nn.Module):
@@ -167,15 +167,20 @@ class Stage(nn.Module):
 
 
 class TransformerStage(nn.Module):
-    def __init__(self, in_channels, out_channels, num_blocks, stride):
+    def __init__(self, in_channels, out_channels, num_blocks, imagesize, downsample = True):
         super(TransformerStage, self).__init__()
         self.blocks = nn.Sequential()
 
         # Each stage consists of a sequence of identical blocks,
         # except for the first block which use stride-two conv.
-        self.blocks.add_module("block_0", TransformerBlock(in_channels, out_channels, stride))
+        # self.blocks.add_module("block_0", TransformerBlock(in_channels, out_channels, stride))
+        # for index in range(1, num_blocks):
+        #     self.blocks.add_module(f"block_{index + 1}", TransformerBlock(out_channels, out_channels, 1))
+        ih, iw = imagesize
+        self.blocks.add_module("block_0", Transformer(in_channels, out_channels, imagesize, downsample = downsample))
         for index in range(1, num_blocks):
-            self.blocks.add_module(f"block_{index + 1}", TransformerBlock(out_channels, out_channels, 1))
+            self.blocks.add_module(f"block_{index + 1}", Transformer(out_channels, out_channels, imagesize))
+
 
     def forward(self, x):
         x = self.blocks(x)
@@ -189,7 +194,8 @@ if __name__ == '__main__':
     assert output.shape == torch.Size([1, 16, 32, 32])
     print("RegNet Module Test Passed!")
 
-    model = TransformerStage(in_channels = 3, out_channels = 16, num_blocks = 3, stride = 2)
+    model = TransformerStage(in_channels = 3, out_channels = 16, num_blocks = 3,
+                             imagesize = (32, 32), downsample = True)
     output = model(image)
     assert output.shape == torch.Size([1, 16, 32, 32])
     print("RegNet Module Test Passed!")
